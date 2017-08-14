@@ -1,0 +1,7 @@
+/.idea/
+/.installed.cfg
+/avalon.egg-info/
+__pycache__/
+/bin/
+/develop-eggs/
+/parts/
