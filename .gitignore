@@ -5,3 +5,7 @@ __pycache__/
 /bin/
 /develop-eggs/
 /parts/
+.mr.developer.cfg
+.venv/
+avalon.sqlite
+src/

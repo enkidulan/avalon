@@ -18,7 +18,7 @@ requires = [
     'zope.sqlalchemy',
     'waitress',
     'cornice',
-    'cornice_swagger',
+    'cornice-swagger',
     'colander',
     'colanderalchemy',
     ]

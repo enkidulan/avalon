@@ -30,15 +30,18 @@ response_schemas = {
 def get(request):
     """Shows user data"""
     username = request.matchdict['username']
-    user = request.dbsession.query(User).filter(User.username == username).one()
+    user = request.dbsession.query(User).filter(
+        User.username == username).one()
     return schemas.UserSchema.dictify(user)
 
 
-@USERS.post(tags=['Users'], schema=schemas.UserSchema, response_schemas=response_schemas, validators=(colander_body_validator,))
+@USERS.post(
+    tags=['Users'], schema=schemas.UserSchema,
+    response_schemas=response_schemas,
+    validators=(colander_body_validator,))
 def create(request):
     """ Updates users fields """
     username = request.authenticated_userid
     if request.matchdict["username"] != username:
         raise HTTPForbidden()
-    _USERS[username] = request.json_body
     return {'success': True}
