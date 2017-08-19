@@ -6,11 +6,13 @@ class SchemaBuilder:
 
     def __new__(cls):
         params = dict(cls.__dict__.items())
-        swagger_schema = SQLAlchemySchemaNode(**params)
+        params['includes'] = set(
+            params.get('includes', [])) - set(params.get('excludes', []))
+        # swagger_schema = SQLAlchemySchemaNode(**params)
         schema = SQLAlchemySchemaNode(**params)
-        del swagger_schema.inspector
-        del swagger_schema.class_
-        schema.swagger = swagger_schema
+        # del swagger_schema.inspector
+        # del swagger_schema.class_
+        # schema.swagger = swagger_schema
         return schema
 
 
@@ -43,9 +45,4 @@ class OrderSchema(SchemaBuilder):
     description = 'Users order schema'
 
 
-class UserSchema(SchemaBuilder):
-    class_ = models.User
-    includes = ['username', 'email', 'fullname', 'role']
-    excludes = ['id']
-    title = 'User class'
-    description = 'User schema'
+

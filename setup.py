@@ -20,6 +20,7 @@ requires = [
     'cornice',
     'cornice-swagger',
     'colander',
+    'psycopg2',
     'colanderalchemy',
     ]
 

@@ -13,7 +13,7 @@ ORDERS = Service(
 
 
 class OkResponseSchema(colander.MappingSchema):
-    body = schemas.OrderSchema().swagger
+    body = schemas.OrderSchema()
 
 
 class NotFoundResponseSchema(colander.MappingSchema):

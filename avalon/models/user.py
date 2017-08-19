@@ -1,3 +1,4 @@
+import enum
 from sqlalchemy import (
     Column,
     Index,
@@ -10,13 +11,19 @@ from sqlalchemy.orm import relationship
 from .meta import Base
 
 
+class UserRole(enum.IntEnum):
+    admin = 1
+    manager = 2
+    unconfirmed = 3
+
+
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String(60), unique=True)
     email = Column(String(60), unique=True)
     fullname = Column(String(60), nullable=False)
-    role = Column(Enum('admin', 'manager', 'unconfirmed'))
+    role = Column(Enum(UserRole, name='UserRole'))
     addresses = relationship("Address", back_populates="user")
     resources = relationship("Resource", back_populates="owner")
     comments = relationship("Comment", back_populates="author")

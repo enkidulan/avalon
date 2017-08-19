@@ -41,5 +41,6 @@ def main(argv=sys.argv):
         dbsession = get_tm_session(session_factory, transaction.manager)
 
         from ..models import User
-        user = User(username='max', fullname='maxmax', email='supamaxy', role='god')
+        from ..models.user import UserRole
+        user = User(username='max', fullname='maxmax', email='supamaxy', role=UserRole.admin)
         dbsession.add(user)
