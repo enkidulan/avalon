@@ -1,110 +1,49 @@
 import colander
 from cornice.resource import resource, view
-from pyramid.httpexceptions import HTTPForbidden
 from cornice.validators import colander_body_validator
 
-from avalon.schemas import SchemaBuilder
+from avalon.schemas import SchemaBuilder, Schematic
 from avalon.models import User
 
 
-# class UserSchema(SchemaBuilder):
-#     class_ = User
-#     schemas = {
-#         'create': ['username', 'email', 'fullname', 'role'],
-#         'update': ['username', 'email', 'fullname', 'role'],
-#         'view': ['username', 'email', 'fullname', 'role'],
-#         'list': ['username', 'email', 'fullname', 'role'],
-
-#     }
-
-class UserSchemaM(SchemaBuilder):
+class UserSchema(SchemaBuilder):
     class_ = User
 
-    class create:
+    class create(Schematic):
         includes = ['username', 'email', 'fullname', 'role']
         description = 'Create User Schema'
 
-    class view:
+    class view(Schematic):
         includes = ['email', 'fullname', 'addresses', 'sold', 'bought']
-        description = 'Update User Schema'
+        description = 'View User Schema'
 
-    class update:
+    class update(Schematic):
         includes = ['email', 'fullname', 'addresses']
         description = 'Update User Schema'
 
-    class delete:
+    class delete(Schematic):
         includes = ['username']
         description = 'Delete User Schema'
 
-    class list:
+    class listing(Schematic):
         includes = ['username', 'role']
-        description = 'list Users Schema'
+        description = 'Listing Users Schema'
 
+        def resp_body_schema(cls, node, schema):
+            return type(
+                'UsersListingSchema',
+                (colander.SequenceSchema,),
+                {'body': schema})(decription='UsersListingSchema')
 
+    class dashboard_listing(Schematic):
+        includes = ['username']
+        description = 'Public List of User Schema'
 
+    class dashboard_user_view(Schematic):
+        includes = ['username', 'sold_count', 'bought_count']
+        description = 'Public User Profile Schema'
 
-#     schemas = {
-#         'create': ['username', 'email', 'fullname', 'role'],
-#         'update': ['username', 'email', 'fullname', 'role'],
-#         'view': ['username', 'email', 'fullname', 'role'],
-#         'list': ['username', 'email', 'fullname', 'role'],
-
-#     }
-
-class UserSchema(SchemaBuilder):
-    class_ = User
-    includes = ['username', 'email', 'fullname', 'role']
-    excludes = ['id']
-    title = 'User class create'
-    description = 'Create User Schema'
-
-
-class ViewUserSchema(SchemaBuilder):
-    class_ = User
-    includes = ['username', 'email', 'fullname', 'role', 'addresses', 'resources', 'comments', 'sold', 'bought']
-    excludes = ['id']
-    title = 'User class'
-    description = 'Create User Schema'
-
-
-class ResponseViewUserSchema(colander.MappingSchema):
-    body = ViewUserSchema()
-
-
-class EditUserSchema(UserSchema):
-    class_ = User
-    includes = UserSchema.includes + ['addresses']
-    excludes = UserSchema.excludes + ['username', 'role']
-    description = 'Edit User Schema'
-
-
-class OkResponseSchema(colander.MappingSchema):
-    body = UserSchema()
-
-
-class NotFoundBodySchema(colander.MappingSchema):
-    username = colander.SchemaNode(
-        colander.String(), description='user')
-    status = colander.SchemaNode(
-        colander.String(), description='status')
-
-
-class NotFoundResponseSchema(colander.MappingSchema):
-    body = NotFoundBodySchema(description='Not found body')
-
-
-class UsersListingSchema(colander.SequenceSchema):
-    body = UserSchema()
-
-
-class ResponseUsersListingSchema(colander.MappingSchema):
-    body = UsersListingSchema(description='UsersListingSchema')
-
-
-response_schemas = {
-    '200': OkResponseSchema(description="successful operation"),
-    '404': NotFoundResponseSchema(description="user not found"),
-}
+UserSchema = UserSchema()
 
 
 @resource(
@@ -113,9 +52,7 @@ response_schemas = {
     tags=['Users'],
     collection_path='/users',
     path='/users/{username}',
-    # collection_factory=BlogNetworkFactory,
-    # collection_traverse='',
-    # factory=BlogNetworkFactory,
+    permission='manage'
 )
 class UsersCRUD:
 
@@ -123,58 +60,70 @@ class UsersCRUD:
         self.request = request
 
     @view(
-        schema=UserSchema,
-        response_schemas=response_schemas,
+        schema=UserSchema.create,
+        response_schemas=UserSchema.create.responses,
         validators=(colander_body_validator,))
     def collection_post(self):
-        """ Updates users fields """
-        username = self.request.authenticated_userid
-        if self.request.matchdict["username"] != username:
-            raise HTTPForbidden()
-        return {'success': True}
+        """ Creates a user """
+        raise
 
-    @view(
-        response_schemas={
-            '200': ResponseUsersListingSchema(description="List of users")},
-    )
+    @view(response_schemas=UserSchema.listing.responses)
     def collection_get(self):
         """ Returns list of users """
-        username = self.request.authenticated_userid
-        if self.request.matchdict["username"] != username:
-            raise HTTPForbidden()
-        return {'success': True}
+        raise
 
-    @view(
-        response_schemas={
-            '200': ResponseViewUserSchema(description='user details')}
-    )
+    @view(response_schemas=UserSchema.view.responses)
     def get(self):
-        """Shows user data"""
+        """Shows all user data"""
         username = self.request.matchdict['username']
         user = self.request.dbsession.query(User).filter(
             User.username == username).first()
+
         if user is None:
             self.request.response.status = 404
-            return response_schemas['404']['body'].deserialize(
-                {'username': username, 'status': 'Not Found'})
-        return UserSchema().dictify(user)
+            return UserSchema.view.responses['404']['body'].deserialize({'param': username, 'status': 'Not Found'})
+        return UserSchema.view.responses['200']['body'].dictify(user)
 
     @view(
-        schema=EditUserSchema,
-        response_schemas=response_schemas,
+        schema=UserSchema.update,
+        response_schemas=UserSchema.update.responses,
         validators=(colander_body_validator,))
     def put(self):
         """ Updates users fields """
-        username = self.request.authenticated_userid
-        if self.request.matchdict["username"] != username:
-            raise HTTPForbidden()
-        return {'success': True}
+        raise
 
-    @view(
-        response_schemas=response_schemas,)
+    @view(response_schemas=UserSchema.delete.responses)
     def delete(self):
         """ Delete user """
-        username = self.request.authenticated_userid
-        if self.request.matchdict["username"] != username:
-            raise HTTPForbidden()
-        return {'success': True}
+        raise
+
+
+@resource(
+    name='dasboard_users',
+    description='Users Public Dashboard Endpoint',
+    tags=['Users'],
+    collection_path='/dasboard_users',
+    path='/dasboard_users/{username}',
+    permission='view'
+)
+class UsersCRUD:
+
+    def __init__(self, request):
+        self.request = request
+
+    @view(response_schemas=UserSchema.dashboard_listing.responses)
+    def collection_get(self):
+        """ Returns list of users """
+        raise
+
+    @view(response_schemas=UserSchema.dashboard_user_view.responses)
+    def get(self):
+        """Shows all user data"""
+        username = self.request.matchdict['username']
+        user = self.request.dbsession.query(User).filter(
+            User.username == username).first()
+
+        if user is None:
+            self.request.response.status = 404
+            return UserSchema.dashboard_user_view.responses['404']['body'].deserialize({'param': username, 'status': 'Not Found'})
+        return UserSchema.dashboard_user_view.responses['200']['body'].dictify(user)
