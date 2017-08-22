@@ -4,14 +4,20 @@ from cornice.validators import colander_body_validator
 
 from avalon.schemas import SchemaBuilder, Schematic
 from avalon.models import User
+from colanderalchemy import SQLAlchemySchemaNode
+
 
 
 class UserSchema(SchemaBuilder):
     class_ = User
 
     class create(Schematic):
-        includes = ['username', 'email', 'fullname', 'role']
+        includes = ['username', 'email', 'role', 'fullname']
         description = 'Create User Schema'
+
+        def resp_200_body_schema(cls, node, schema):
+            return SQLAlchemySchemaNode(
+                User, includes=['id', 'username', 'email', 'role', 'fullname'])
 
     class view(Schematic):
         includes = ['email', 'fullname', 'addresses', 'sold', 'bought']
@@ -29,7 +35,7 @@ class UserSchema(SchemaBuilder):
         includes = ['username', 'role']
         description = 'Listing Users Schema'
 
-        def resp_body_schema(cls, node, schema):
+        def resp_200_body_schema(cls, node, schema):
             return type(
                 'UsersListingSchema',
                 (colander.SequenceSchema,),
@@ -52,12 +58,13 @@ UserSchema = UserSchema()
     tags=['Users'],
     collection_path='/users',
     path='/users/{username}',
-    permission='manage'
+    # permission='manage'
 )
 class UsersCRUD:
 
     def __init__(self, request):
         self.request = request
+        self.dbsession = self.request.dbsession
 
     @view(
         schema=UserSchema.create,
@@ -65,23 +72,32 @@ class UsersCRUD:
         validators=(colander_body_validator,))
     def collection_post(self):
         """ Creates a user """
-        raise
+        obj = UserSchema.create.objectify(self.request.json_body)
+        self.dbsession.add(obj)
+        self.dbsession.flush()
+        return UserSchema.create.responses['200']['body'].dictify(obj)
 
     @view(response_schemas=UserSchema.listing.responses)
     def collection_get(self):
         """ Returns list of users """
-        raise
+        return [
+            UserSchema.listing.responses['200']['body']['body'].dictify(obj)
+            for obj in self.dbsession.query(User).all()]
+
+    def _get_user(self):
+        username = self.request.matchdict['username']
+        user = self.dbsession.query(User).filter(
+            User.username == username).first()
+        return user
 
     @view(response_schemas=UserSchema.view.responses)
     def get(self):
         """Shows all user data"""
-        username = self.request.matchdict['username']
-        user = self.request.dbsession.query(User).filter(
-            User.username == username).first()
-
+        user = self._get_user()
         if user is None:
             self.request.response.status = 404
-            return UserSchema.view.responses['404']['body'].deserialize({'param': username, 'status': 'Not Found'})
+            return UserSchema.view.responses['404']['body'].deserialize({'param': self.request.matchdict['username'], 'status': 'Not Found'})
+
         return UserSchema.view.responses['200']['body'].dictify(user)
 
     @view(
@@ -90,6 +106,18 @@ class UsersCRUD:
         validators=(colander_body_validator,))
     def put(self):
         """ Updates users fields """
+
+        """ Creates a user """
+        user = self._get_user()
+        if user is None:
+            self.request.response.status = 404
+            return UserSchema.update.responses['404']['body'].deserialize({'param': self.request.matchdict['username'], 'status': 'Not Found'})
+
+        obj = UserSchema.create.objectify(self.request.json_body)
+        self.dbsession.add(obj)
+        self.dbsession.flush()
+        return UserSchema.create.responses['200']['body'].dictify(obj)
+
         raise
 
     @view(response_schemas=UserSchema.delete.responses)
@@ -98,32 +126,25 @@ class UsersCRUD:
         raise
 
 
-@resource(
-    name='dasboard/users',
-    description='Users Public Dashboard Endpoint',
-    tags=['Users', 'Dashboard'],
-    collection_path='/dasboard/users',
-    path='/dasboard/users/{username}',
-    permission='view'
-)
-class UsersCRUD:
+# @resource(
+#     name='dasboard/users',
+#     description='Users Public Dashboard Endpoint',
+#     tags=['Users', 'Dashboard'],
+#     collection_path='/dasboard/users',
+#     path='/dasboard/users/{username}',
+#     permission='view'
+# )
+# class UsersCRUD:
 
-    def __init__(self, request):
-        self.request = request
+#     def __init__(self, request):
+#         self.request = request
 
-    @view(response_schemas=UserSchema.dashboard_listing.responses)
-    def collection_get(self):
-        """ Returns list of users """
-        raise
+#     @view(response_schemas=UserSchema.dashboard_listing.responses)
+#     def collection_get(self):
+#         """ Returns list of users """
+#         raise
 
-    @view(response_schemas=UserSchema.dashboard_user_view.responses)
-    def get(self):
-        """Shows all user data"""
-        username = self.request.matchdict['username']
-        user = self.request.dbsession.query(User).filter(
-            User.username == username).first()
-
-        if user is None:
-            self.request.response.status = 404
-            return UserSchema.dashboard_user_view.responses['404']['body'].deserialize({'param': username, 'status': 'Not Found'})
-        return UserSchema.dashboard_user_view.responses['200']['body'].dictify(user)
+#     @view(response_schemas=UserSchema.dashboard_user_view.responses)
+#     def get(self):
+#         """Shows all user data"""
+#         raise

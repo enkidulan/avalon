@@ -13,8 +13,8 @@ class SchemaBuilder:
     @classmethod
     def _contruct_responses(cls, node, schema):
 
-        if hasattr(node, 'resp_body_schema'):
-            schema = node.resp_body_schema(cls, node, schema)
+        if hasattr(node, 'resp_200_body_schema'):
+            schema = node.resp_200_body_schema(cls, node, schema)
 
         ok = type(
             'OkResponseSchema',
