@@ -99,11 +99,11 @@ class UsersCRUD:
 
 
 @resource(
-    name='dasboard_users',
+    name='dasboard/users',
     description='Users Public Dashboard Endpoint',
-    tags=['Users'],
-    collection_path='/dasboard_users',
-    path='/dasboard_users/{username}',
+    tags=['Users', 'Dashboard'],
+    collection_path='/dasboard/users',
+    path='/dasboard/users/{username}',
     permission='view'
 )
 class UsersCRUD:
