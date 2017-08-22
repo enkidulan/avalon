@@ -28,10 +28,22 @@ class SchemaBuilder:
             {'body': cls.NotFoundBodySchema(
                 description='Requested content cannot be found')}
         )(description="Not Found")
-        return {
+
+        schemas = {
             '200': ok,
             '404': not_found,
         }
+
+        if hasattr(node, 'resp_400_body_schema'):
+            bad_request = type(
+                'BadRequestResponseSchema',
+                (colander.MappingSchema,),
+                {'body': cls.BadRequestBodySchema(
+                    description='Bad Request')}
+            )(description="Bad Request")
+            schemas['400'] = bad_request
+
+        return schemas
 
     @classmethod
     def _contruct(cls, node):
@@ -54,6 +66,12 @@ class SchemaBuilder:
             colander.String(), description='param')
         status = colander.SchemaNode(
             colander.String(), description='status')
+
+    class BadRequestBodySchema(colander.MappingSchema):
+        status = colander.SchemaNode(
+            colander.String(), description='status')
+        errors = colander.SchemaNode(
+            colander.String(), description='errors')
 
     def __new__(cls):
         schemas = {

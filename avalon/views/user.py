@@ -7,7 +7,6 @@ from avalon.models import User
 from colanderalchemy import SQLAlchemySchemaNode
 
 
-
 class UserSchema(SchemaBuilder):
     class_ = User
 
@@ -18,6 +17,8 @@ class UserSchema(SchemaBuilder):
         def resp_200_body_schema(cls, node, schema):
             return SQLAlchemySchemaNode(
                 User, includes=['id', 'username', 'email', 'role', 'fullname'])
+
+        resp_400_body_schema = True
 
     class view(Schematic):
         includes = ['email', 'fullname', 'addresses', 'sold', 'bought']
@@ -129,7 +130,7 @@ class UsersCRUD:
 # @resource(
 #     name='dasboard/users',
 #     description='Users Public Dashboard Endpoint',
-#     tags=['Users', 'Dashboard'],
+#     tags=['Dashboard'],
 #     collection_path='/dasboard/users',
 #     path='/dasboard/users/{username}',
 #     permission='view'
